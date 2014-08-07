@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -14,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/codegangsta/cli"
+	"github.com/jessevdk/go-flags"
 )
 
 var timings = []string{
@@ -426,108 +425,138 @@ func isCorrectTiming(timing string) bool {
 	return false
 }
 
-func unshiftTiming(c *cli.Context) (string, []string, error) {
-	args := c.Args()
+func unshiftTiming(args []string) (string, []string, error) {
 	if len(args) == 0 || !isCorrectTiming(args[0]) {
 		return "", nil, errors.New("wrong timing")
 	}
 	return args[0], args[1:], nil
 }
 
-func main() {
-	app := cli.NewApp()
-	app.Commands = []cli.Command{
-		{
-			Name: "init",
-			Action: func(c *cli.Context) {
-				err := createRootHook()
-				if err != nil {
-					log.Fatal(err)
-				}
-			},
-		},
-		{
-			Name: "install",
-			Flags: []cli.Flag{
-				cli.StringFlag{
-					Name:  `link, l`,
-					Usage: `Create symbolic link instead of copy to install a local script`,
-				},
-			},
-			Action: func(c *cli.Context) {
-				timing, args, err := unshiftTiming(c)
-				if err != nil || len(args) != 1 {
-					cli.ShowAppHelp(c)
-					os.Exit(1)
-				}
-				err = installHook(timing, args[0])
-				if err != nil {
-					fmt.Println(err)
-					os.Exit(1)
-				}
-			},
-		},
-		{
-			Name: "test",
-			Action: func(c *cli.Context) {
-				timing, args, err := unshiftTiming(c)
-				if err != nil {
-					cli.ShowAppHelp(c)
-					os.Exit(1)
-				}
-				err = runTest(timing, args)
-				if err != nil {
-					fmt.Println(err)
-					os.Exit(1)
-				}
-			},
-		},
-		{
-			Name: "edit",
-			Action: func(c *cli.Context) {
-				timing, args, err := unshiftTiming(c)
-				if err != nil || len(args) > 0 {
-					cli.ShowAppHelp(c)
-					os.Exit(1)
-				}
-				err = runEdit(timing)
-				if err != nil {
-					fmt.Println(err)
-					os.Exit(1)
-				}
-			},
-		},
-		{
-			Name: "update",
-			Action: func(c *cli.Context) {
-				timing, args, err := unshiftTiming(c)
-				if err != nil || len(args) > 0 {
-					cli.ShowAppHelp(c)
-					os.Exit(1)
-				}
-				err = updateHooks(timing)
-				if err != nil {
-					fmt.Println(err)
-					os.Exit(1)
-				}
-			},
-		},
-		{
-			Name: "show",
-			Action: func(c *cli.Context) {
-				timing, args, err := unshiftTiming(c)
-				if err != nil || len(args) > 0 {
-					cli.ShowAppHelp(c)
-					os.Exit(1)
-				}
-				err = showHookList(timing)
-				if err != nil {
-					fmt.Println(err)
-					os.Exit(1)
-				}
-			},
-		},
-	}
+type options struct {
+	Init    initOptions      `command:"init"`
+	Install installCommander `command:"install"`
+	Test    initOptions      `command:"test"`
+	Edit    initOptions      `command:"edit"`
+	Update  initOptions      `command:"update"`
+	Show    initOptions      `command:"show"`
+}
 
-	app.Run(os.Args)
+type initOptions struct {
+}
+
+type installCommander struct {
+	Link bool `short:"l" long:"link" description:"Create symbolic link instead of copy to install a local script"`
+}
+
+func (c *installCommander) Execute(args []string) error {
+	fmt.Println(args)
+	fmt.Println(c.Link)
+	return nil
+}
+
+func main() {
+	var opts options
+	_, err := flags.Parse(&opts)
+	if err != nil {
+		os.Exit(1)
+	}
+	// parser := flags.NewParser(&opts, os.Args)
+	// fmt.Println(err)
+	// fmt.Println(args)
+	// fmt.Println(opts)
+	// 	app := cli.NewApp()
+	// 	app.Commands = []cli.Command{
+	// 		{
+	// 			Name: "init",
+	// 			Action: func(c *cli.Context) {
+	// 				err := createRootHook()
+	// 				if err != nil {
+	// 					log.Fatal(err)
+	// 				}
+	// 			},
+	// 		},
+	// 		{
+	// 			Name: "install",
+	// 			Flags: []cli.Flag{
+	// 				cli.StringFlag{
+	// 					Name:  `link, l`,
+	// 					Usage: `Create symbolic link instead of copy to install a local script`,
+	// 				}
+	// 			},
+	// 			Action: func(c *cli.Context) {
+	// 				timing, args, err := unshiftTiming(c)
+	// 				if err != nil || len(args) != 1 {
+	// 					cli.ShowAppHelp(c)
+	// 					os.Exit(1)
+	// 				}
+	// 				err = installHook(timing, args[0])
+	// 				if err != nil {
+	// 					fmt.Println(err)
+	// 					os.Exit(1)
+	// 				}
+	// 			},
+	// 		},
+	// 		{
+	// 			Name: "test",
+	// 			Action: func(c *cli.Context) {
+	// 				timing, args, err := unshiftTiming(c)
+	// 				if err != nil {
+	// 					cli.ShowAppHelp(c)
+	// 					os.Exit(1)
+	// 				}
+	// 				err = runTest(timing, args)
+	// 				if err != nil {
+	// 					fmt.Println(err)
+	// 					os.Exit(1)
+	// 				}
+	// 			},
+	// 		},
+	// 		{
+	// 			Name: "edit",
+	// 			Action: func(c *cli.Context) {
+	// 				timing, args, err := unshiftTiming(c)
+	// 				if err != nil || len(args) > 0 {
+	// 					cli.ShowAppHelp(c)
+	// 					os.Exit(1)
+	// 				}
+	// 				err = runEdit(timing)
+	// 				if err != nil {
+	// 					fmt.Println(err)
+	// 					os.Exit(1)
+	// 				}
+	// 			},
+	// 		},
+	// 		{
+	// 			Name: "update",
+	// 			Action: func(c *cli.Context) {
+	// 				timing, args, err := unshiftTiming(c)
+	// 				if err != nil || len(args) > 0 {
+	// 					cli.ShowAppHelp(c)
+	// 					os.Exit(1)
+	// 				}
+	// 				err = updateHooks(timing)
+	// 				if err != nil {
+	// 					fmt.Println(err)
+	// 					os.Exit(1)
+	// 				}
+	// 			},
+	// 		},
+	// 		{
+	// 			Name: "show",
+	// 			Action: func(c *cli.Context) {
+	// 				timing, args, err := unshiftTiming(c)
+	// 				if err != nil || len(args) > 0 {
+	// 					cli.ShowAppHelp(c)
+	// 					os.Exit(1)
+	// 				}
+	// 				err = showHookList(timing)
+	// 				if err != nil {
+	// 					fmt.Println(err)
+	// 					os.Exit(1)
+	// 				}
+	// 			},
+	// 		},
+	// 	}
+	//
+	// 	app.Run(os.Args)
 }
