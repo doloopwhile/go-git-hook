@@ -2,6 +2,7 @@
 *.o
 *.a
 *.so
+/git-hook
 
 # Folders
 _obj
