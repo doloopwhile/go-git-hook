@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -38,6 +37,13 @@ var timings = []string{
 const rootHookFormat = `#!/bin/sh
 git hook test %s "$@"
 `
+
+var (
+	version  string
+	compiled time.Time
+	author   string
+	email    string
+)
 
 type UrlHook struct {
 	url *url.URL
@@ -436,13 +442,19 @@ func unshiftTiming(c *cli.Context) (string, []string, error) {
 
 func main() {
 	app := cli.NewApp()
+	app.Version = version
+	app.Compiled = compiled
+	app.Author = author
+	app.Email = email
+
 	app.Commands = []cli.Command{
 		{
 			Name: "init",
 			Action: func(c *cli.Context) {
 				err := createRootHook()
 				if err != nil {
-					log.Fatal(err)
+					fmt.Fprintln(os.Stderr, err)
+					os.Exit(1)
 				}
 			},
 		},
@@ -462,7 +474,7 @@ func main() {
 				}
 				err = installHook(timing, args[0])
 				if err != nil {
-					fmt.Println(err)
+					fmt.Fprintln(os.Stderr, err)
 					os.Exit(1)
 				}
 			},
@@ -477,7 +489,7 @@ func main() {
 				}
 				err = runTest(timing, args)
 				if err != nil {
-					fmt.Println(err)
+					fmt.Fprintln(os.Stderr, err)
 					os.Exit(1)
 				}
 			},
@@ -492,7 +504,7 @@ func main() {
 				}
 				err = runEdit(timing)
 				if err != nil {
-					fmt.Println(err)
+					fmt.Fprintln(os.Stderr, err)
 					os.Exit(1)
 				}
 			},
@@ -507,7 +519,7 @@ func main() {
 				}
 				err = updateHooks(timing)
 				if err != nil {
-					fmt.Println(err)
+					fmt.Fprintln(os.Stderr, err)
 					os.Exit(1)
 				}
 			},
@@ -522,7 +534,7 @@ func main() {
 				}
 				err = showHookList(timing)
 				if err != nil {
-					fmt.Println(err)
+					fmt.Fprintln(os.Stderr, err)
 					os.Exit(1)
 				}
 			},
